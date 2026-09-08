@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Support;
 
-use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -14,8 +13,7 @@ final class RecordLink
 {
     public static function for(Model $record): ?string
     {
-        /** @var class-string<\Filament\Resources\Resource>|null $resource */
-        $resource = Filament::getModelResource($record);
+        $resource = ResourceLocator::for($record);
 
         if ($resource === null) {
             return null;
@@ -36,8 +34,7 @@ final class RecordLink
 
     public static function title(Model $record): string
     {
-        /** @var class-string<\Filament\Resources\Resource>|null $resource */
-        $resource = Filament::getModelResource($record);
+        $resource = ResourceLocator::for($record);
 
         if ($resource !== null) {
             return (string) $resource::getRecordTitle($record);

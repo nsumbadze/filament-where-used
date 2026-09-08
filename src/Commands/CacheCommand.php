@@ -15,7 +15,9 @@ class CacheCommand extends Command
 
     public function handle(ReferenceMap $map): int
     {
-        $map->usePaths(config('filament-where-used.model_paths', []));
+        if (! $map->hasPaths()) {
+            $map->usePaths(config('filament-where-used.model_paths', []));
+        }
 
         $result = $map->rebuild();
 

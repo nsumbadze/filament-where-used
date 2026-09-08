@@ -64,6 +64,10 @@ final class ModelDiscovery
             return null;
         }
 
+        if (preg_match('/^\s*(?:enum|interface|trait)\s+\w+/m', $contents)) {
+            return null;
+        }
+
         if (! preg_match('/^\s*(?:final\s+|abstract\s+|readonly\s+)*class\s+(\w+)/m', $contents, $class)) {
             return null;
         }
