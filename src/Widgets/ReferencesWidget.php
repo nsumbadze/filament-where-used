@@ -8,7 +8,6 @@ use Nsumbadze\WhereUsed\ReferenceCount;
 use Nsumbadze\WhereUsed\References;
 use Nsumbadze\WhereUsed\Support\RecordLink;
 use Filament\Widgets\Widget;
-use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -17,14 +16,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ReferencesWidget extends Widget
 {
+    /**
+     * @var view-string
+     */
+    protected string $view = 'filament-where-used::widgets.references';
+
     protected int|string|array $columnSpan = 'full';
 
     public ?Model $record = null;
-
-    public function render(): View
-    {
-        return view('filament-where-used::widgets.references');
-    }
 
     /**
      * @return array<int, array{label: string, count: int, records: array<int, array{title: string, url: ?string}>}>
