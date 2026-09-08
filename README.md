@@ -9,7 +9,7 @@ The plugin discovers relationships itself by reflecting your models' `BelongsTo`
 ## Requirements
 
 - PHP 8.2+
-- Filament 4.x
+- Filament 4.x or 5.x
 
 ## Installation
 
@@ -97,12 +97,15 @@ class Category extends Model implements HasReferences
 ```php
 use Nsumbadze\WhereUsed\Facades\WhereUsed;
 
-WhereUsed::isReferenced($category);                 // bool
+WhereUsed::isReferenced($category);                 // bool, stops at the first hit
 WhereUsed::usagesOf($category);                     // Collection<ReferenceCount>, non-zero only
+WhereUsed::usagesAcross($categories);               // totals for many records, one query per reference
 WhereUsed::summary(WhereUsed::usagesOf($category)); // "Used by 14 products and 3 promotions."
 ```
 
-Counts run through the referencing model's Filament resource query (`getEloquentQuery()`) when a resource exists, so tenancy and soft-delete scopes match what the panel shows.
+Counts run through the referencing model's Filament resource query (`getEloquentQuery()`) when a resource exists, so tenancy and soft-delete scopes match what the panel shows: soft-deleted referencing rows do not count unless the resource query includes trashed records.
+
+Counts are memoised per record for the request (the delete modal asks three times: description, submit button, guard). Call `WhereUsed::flush()` after changing references in the same request.
 
 ## Caching the reference map
 
