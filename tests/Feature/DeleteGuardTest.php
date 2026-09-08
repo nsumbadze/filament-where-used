@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
+use Filament\Actions\Testing\TestAction;
 use Nsumbadze\WhereUsed\DeleteGuard;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Category;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Product;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource\Pages\EditCategory;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource\Pages\ListCategories;
-use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 

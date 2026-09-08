@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Tests\Fixtures\Resources;
 
-use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Category;
-use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource\Pages;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\TextInput;
@@ -13,6 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Category;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource\Pages;
 
 class CategoryResource extends Resource
 {

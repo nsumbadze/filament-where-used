@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed;
 
-use Nsumbadze\WhereUsed\Contracts\HasReferences;
-use Nsumbadze\WhereUsed\Support\ModelDiscovery;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Cache;
+use Nsumbadze\WhereUsed\Contracts\HasReferences;
+use Nsumbadze\WhereUsed\Support\ModelDiscovery;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;

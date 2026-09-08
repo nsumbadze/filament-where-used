@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Widgets;
 
+use Filament\Widgets\Widget;
+use Illuminate\Database\Eloquent\Model;
 use Nsumbadze\WhereUsed\ReferenceCount;
 use Nsumbadze\WhereUsed\References;
 use Nsumbadze\WhereUsed\Support\RecordLink;
-use Filament\Widgets\Widget;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * Footer widget for View / Edit pages: lists the records referencing $record.

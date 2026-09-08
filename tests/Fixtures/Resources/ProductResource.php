@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Tests\Fixtures\Resources;
 
-use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Product;
-use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\ProductResource\Pages;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Product;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\ProductResource\Pages;
 
 class ProductResource extends Resource
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Commands;
 
-use Nsumbadze\WhereUsed\ReferenceMap;
 use Illuminate\Console\Command;
+use Nsumbadze\WhereUsed\ReferenceMap;
 
 class CacheCommand extends Command
 {

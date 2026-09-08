@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Facades;
 
-use Nsumbadze\WhereUsed\References;
 use Illuminate\Support\Facades\Facade;
+use Nsumbadze\WhereUsed\References;
 
 /**
  * @method static \Illuminate\Support\Collection<int, \Nsumbadze\WhereUsed\ReferenceCount> countsFor(\Illuminate\Database\Eloquent\Model $record)

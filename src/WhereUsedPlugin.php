@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Nsumbadze\WhereUsed;
 
 use Closure;
-use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
+use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
 
 class WhereUsedPlugin implements Plugin
 {

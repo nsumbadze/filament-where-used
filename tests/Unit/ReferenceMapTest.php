@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Cache;
 use Nsumbadze\WhereUsed\Reference;
 use Nsumbadze\WhereUsed\ReferenceMap;
 use Nsumbadze\WhereUsed\Support\ModelDiscovery;
@@ -11,7 +12,6 @@ use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Product;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Promotion;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Tag;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\User;
-use Illuminate\Support\Facades\Cache;
 
 it('discovers concrete models in the configured paths', function (): void {
     $classes = ModelDiscovery::classesIn([__DIR__ . '/../Fixtures/Models']);

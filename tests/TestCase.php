@@ -6,9 +6,6 @@ namespace Nsumbadze\WhereUsed\Tests;
 
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
-use Nsumbadze\WhereUsed\Tests\Fixtures\Models\User;
-use Nsumbadze\WhereUsed\Tests\Fixtures\Panel\TestPanelProvider;
-use Nsumbadze\WhereUsed\WhereUsedServiceProvider;
 use Filament\Actions\ActionsServiceProvider;
 use Filament\Facades\Filament;
 use Filament\FilamentServiceProvider;
@@ -21,6 +18,9 @@ use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\LivewireServiceProvider;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Models\User;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Panel\TestPanelProvider;
+use Nsumbadze\WhereUsed\WhereUsedServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use RyanChandler\BladeCaptureDirective\BladeCaptureDirectiveServiceProvider;
 

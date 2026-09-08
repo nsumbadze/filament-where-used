@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Tests\Fixtures\Models;
 
-use Nsumbadze\WhereUsed\Contracts\HasReferences;
-use Nsumbadze\WhereUsed\Reference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Nsumbadze\WhereUsed\Contracts\HasReferences;
+use Nsumbadze\WhereUsed\Reference;
 
 class Category extends Model implements HasReferences
 {

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed\Tests\Fixtures\Panel;
 
+use Filament\Panel;
+use Filament\PanelProvider;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\ProductResource;
 use Nsumbadze\WhereUsed\WhereUsedPlugin;
-use Filament\Panel;
-use Filament\PanelProvider;
 
 class TestPanelProvider extends PanelProvider
 {

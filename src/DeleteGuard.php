@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed;
 
-use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -12,6 +11,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
 
 /**
  * Wires the reference check into Filament's delete actions.
