@@ -1,7 +1,13 @@
 {
     "name": "nsumbadze/filament-where-used",
     "description": "Show who references a record and make delete safe in Filament: reference discovery, delete guards and a References widget.",
-    "keywords": ["filament", "laravel", "references", "delete", "relations"],
+    "keywords": [
+        "filament",
+        "laravel",
+        "references",
+        "delete",
+        "relations"
+    ],
     "license": "MIT",
     "type": "library",
     "authors": [
@@ -11,13 +17,13 @@
     ],
     "require": {
         "php": "^8.2",
-        "filament/filament": "^4.0",
+        "filament/filament": "^4.0 || ^5.0",
         "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
-        "orchestra/testbench": "^10.0",
+        "orchestra/testbench": "^10.0 || ^11.0",
         "pestphp/pest": "^4.0",
         "pestphp/pest-plugin-laravel": "^4.0",
         "pestphp/pest-plugin-livewire": "^4.0"
