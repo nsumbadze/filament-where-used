@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Nsumbadze\WhereUsed;
 
 use Closure;
-use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Nsumbadze\WhereUsed\Support\ResourceLocator;
 
 /**
  * One way a source model can point at a target record.
@@ -27,6 +28,8 @@ final class Reference
     private ?string $label = null;
 
     private ?Closure $constraint = null;
+
+    private ?string $key = null;
 
     /**
      * @param  class-string<Model>  $source
@@ -131,7 +134,7 @@ final class Reference
             return $this->label;
         }
 
-        $resource = Filament::getModelResource($this->source);
+        $resource = ResourceLocator::for($this->source);
 
         if ($resource !== null) {
             return $count === 1 ? $resource::getModelLabel() : $resource::getPluralModelLabel();
@@ -164,8 +167,48 @@ final class Reference
         };
     }
 
+    /**
+     * Constrain a query to rows pointing at any of $targets in one statement.
+     * Custom references have no batch form and return null.
+     *
+     * @param  Builder<Model>  $query
+     * @param  Collection<int, Model>  $targets
+     * @return Builder<Model>|null
+     */
+    public function applyMany(Builder $query, Collection $targets): ?Builder
+    {
+        return match ($this->type) {
+            self::TYPE_BELONGS_TO => $query->whereIn(
+                $query->qualifyColumn((string) $this->foreignKey),
+                $targets->map(fn (Model $target): mixed => $target->getAttribute((string) $this->ownerKey))->all(),
+            ),
+            self::TYPE_MORPH_TO => $query->where(function (Builder $query) use ($targets): void {
+                foreach ($targets->groupBy(fn (Model $target): string => $target->getMorphClass()) as $morphClass => $group) {
+                    $query->orWhere(fn (Builder $query): Builder => $query
+                        ->where($query->qualifyColumn((string) $this->morphType), $morphClass)
+                        ->whereIn($query->qualifyColumn((string) $this->foreignKey), $group->map(fn (Model $target): mixed => $target->getKey())->all()));
+                }
+            }),
+            default => null,
+        };
+    }
+
+    /**
+     * Stable identity: the same reference resolved for two records must share
+     * a key so bulk totals merge. The map assigns keys to custom references.
+     */
     public function key(): string
     {
-        return $this->source . '@' . ($this->relation ?? $this->foreignKey ?? spl_object_id($this));
+        return $this->key ?? $this->source . '@' . ($this->relation ?? $this->foreignKey ?? 'custom');
+    }
+
+    /**
+     * @internal
+     */
+    public function withKey(string $key): self
+    {
+        $this->key = $key;
+
+        return $this;
     }
 }

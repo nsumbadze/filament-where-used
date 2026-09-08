@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace Nsumbadze\WhereUsed;
 
-use Filament\Facades\Filament;
-use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Nsumbadze\WhereUsed\Support\ResourceLocator;
 
 /**
  * Counts and lists the records that reference a given record.
+ *
+ * Counts are memoised per record for the lifetime of the instance (one
+ * request), because a delete modal asks the same question three times:
+ * description, submit button state, and the before-hook guard.
  */
 class References
 {
+    /** @var array<string, Collection<int, ReferenceCount>> */
+    protected array $memo = [];
+
     public function __construct(protected ReferenceMap $map) {}
 
     /**
@@ -24,7 +30,13 @@ class References
      */
     public function countsFor(Model $record): Collection
     {
-        return collect($this->map->for($record::class))
+        $key = $this->memoKey($record);
+
+        if (isset($this->memo[$key])) {
+            return $this->memo[$key];
+        }
+
+        return $this->memo[$key] = collect($this->map->for($record::class))
             ->map(fn (Reference $reference): ReferenceCount => new ReferenceCount(
                 $reference,
                 $this->query($reference, $record)->count(),
@@ -46,6 +58,10 @@ class References
 
     public function isReferenced(Model $record): bool
     {
+        if (isset($this->memo[$this->memoKey($record)])) {
+            return $this->usagesOf($record)->isNotEmpty();
+        }
+
         foreach ($this->map->for($record::class) as $reference) {
             if ($this->query($reference, $record)->exists()) {
                 return true;
@@ -53,6 +69,55 @@ class References
         }
 
         return false;
+    }
+
+    /**
+     * Usage counts summed across many records, one query per reference where
+     * the reference supports batching (belongsTo, morphTo).
+     *
+     * @param  Collection<int, Model>  $records
+     * @return Collection<int, ReferenceCount>
+     */
+    public function usagesAcross(Collection $records): Collection
+    {
+        $records = $records->values();
+
+        if ($records->isEmpty()) {
+            return collect();
+        }
+
+        if ($records->count() === 1) {
+            /** @var Model $only */
+            $only = $records->first();
+
+            return $this->usagesOf($only);
+        }
+
+        /** @var array<string, ReferenceCount> $totals */
+        $totals = [];
+
+        foreach ($records->groupBy(fn (Model $record): string => $record::class) as $group) {
+            /** @var Model $first */
+            $first = $group->first();
+
+            foreach ($this->map->for($first::class) as $reference) {
+                $batched = $reference->applyMany($this->baseQuery($reference), $group);
+
+                $count = $batched !== null
+                    ? $batched->count()
+                    : (int) $group->sum(fn (Model $record): int => $this->query($reference, $record)->count());
+
+                if ($count === 0) {
+                    continue;
+                }
+
+                $key = $reference->key();
+
+                $totals[$key] = new ReferenceCount($reference, ($totals[$key]->count ?? 0) + $count);
+            }
+        }
+
+        return collect(array_values($totals));
     }
 
     /**
@@ -73,14 +138,15 @@ class References
      */
     public function query(Reference $reference, Model $record): Builder
     {
-        /** @var class-string<\Filament\Resources\Resource>|null $resource */
-        $resource = Filament::getModelResource($reference->source);
+        return $reference->apply($this->baseQuery($reference), $record);
+    }
 
-        $query = $resource !== null
-            ? $resource::getEloquentQuery()
-            : $reference->source::query();
-
-        return $reference->apply($query, $record);
+    /**
+     * Forget memoised counts (after a mutation within the same request).
+     */
+    public function flush(): void
+    {
+        $this->memo = [];
     }
 
     /**
@@ -108,5 +174,22 @@ class References
             : implode(', ', $parts) . ' ' . __('filament-where-used::where-used.and') . ' ' . $last;
 
         return __('filament-where-used::where-used.used_by', ['list' => $list]);
+    }
+
+    /**
+     * @return Builder<Model>
+     */
+    protected function baseQuery(Reference $reference): Builder
+    {
+        $resource = ResourceLocator::for($reference->source);
+
+        return $resource !== null
+            ? $resource::getEloquentQuery()
+            : $reference->source::query();
+    }
+
+    protected function memoKey(Model $record): string
+    {
+        return $record::class . '#' . $record->getKey();
     }
 }

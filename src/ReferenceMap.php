@@ -47,6 +47,11 @@ class ReferenceMap
         return $this;
     }
 
+    public function hasPaths(): bool
+    {
+        return $this->paths !== [];
+    }
+
     /**
      * @param  array<int, class-string>  $models
      */
@@ -73,7 +78,9 @@ class ReferenceMap
         );
 
         if (is_subclass_of($target, HasReferences::class)) {
-            $references = [...$references, ...$target::references()];
+            foreach (array_values($target::references()) as $index => $custom) {
+                $references[] = $custom->withKey("{$custom->source}@custom#{$index}");
+            }
         }
 
         return array_values(array_filter(
@@ -128,8 +135,14 @@ class ReferenceMap
         $discoverUntyped = (bool) config('filament-where-used.discover_untyped', false);
 
         foreach (ModelDiscovery::classesIn($this->paths) as $source) {
+            try {
+                $instance = new $source;
+            } catch (Throwable) {
+                continue;
+            }
+
             foreach ($this->relationMethods($source, $discoverUntyped) as $method) {
-                $relation = $this->instantiate($source, $method);
+                $relation = $this->instantiate($instance, $method);
 
                 if ($relation instanceof MorphTo) {
                     $map[self::MORPH_KEY][] = Reference::morphTo(
@@ -200,13 +213,12 @@ class ReferenceMap
     }
 
     /**
-     * @param  class-string<Model>  $model
      * @return Relation<Model, Model, mixed>|null
      */
-    protected function instantiate(string $model, ReflectionMethod $method): ?Relation
+    protected function instantiate(Model $model, ReflectionMethod $method): ?Relation
     {
         try {
-            $relation = $method->invoke(new $model);
+            $relation = $method->invoke($model);
         } catch (Throwable) {
             return null;
         }
