@@ -1,15 +1,13 @@
 # Filament Where Used
 
-Show who references a record and make delete safe.
+Shows which records reference a record before it is deleted, and blocks or confirms the deletion accordingly.
 
-Before an admin deletes something, the panel tells them who still depends on it: **"Used by 14 products and 3 promotions."** The delete is blocked (or allowed after an explicit confirmation), and every record's View or Edit page can show a **References** widget listing the records that point at it, each one clickable.
-
-The plugin discovers relationships itself by reflecting your models' `BelongsTo` and `MorphTo` methods, so there is nothing to declare for the common cases.
+The plugin reflects the `BelongsTo` and `MorphTo` relationships of your models once, caches the result, and uses it to answer "what points at this record?". Every `DeleteAction` and `DeleteBulkAction` in the panel gets the answer in its confirmation modal, for example "Used by 14 products and 3 promotions." An optional widget lists the referencing records on View and Edit pages.
 
 ## Requirements
 
-- PHP 8.2+
-- Filament 4.x or 5.x
+- PHP 8.2 or newer (8.3 for Filament 5)
+- Filament 4 or 5
 
 ## Installation
 
@@ -17,7 +15,7 @@ The plugin discovers relationships itself by reflecting your models' `BelongsTo`
 composer require nsumbadze/filament-where-used
 ```
 
-Register the plugin in your panel provider:
+Register the plugin in the panel provider:
 
 ```php
 use Nsumbadze\WhereUsed\WhereUsedPlugin;
@@ -25,35 +23,32 @@ use Nsumbadze\WhereUsed\WhereUsedPlugin;
 public function panel(Panel $panel): Panel
 {
     return $panel
-        // ...
         ->plugin(WhereUsedPlugin::make());
 }
 ```
 
-Optionally publish the config:
+The config file can be published with `php artisan vendor:publish --tag=filament-where-used-config`.
 
-```bash
-php artisan vendor:publish --tag=filament-where-used-config
-```
+## Delete guards
 
-## What you get out of the box
+With the plugin registered, delete actions behave as follows when references exist:
 
-Once the plugin is registered, every `DeleteAction` and `DeleteBulkAction` in the panel:
-
-- shows the usage summary in the confirmation modal,
-- disables the confirm button and cancels the action when references exist (`block` mode, the default), or
-- lets the user proceed after reading the summary (`confirm` mode).
+- `block` (default): the modal shows the summary, the confirm button is disabled, and the action is cancelled on the server if it is submitted anyway.
+- `confirm`: the modal shows the summary and the user can still delete.
 
 ```php
 WhereUsedPlugin::make()
-    ->onDelete('confirm')                 // 'block' (default) or 'confirm'
-    ->modelPaths([app_path('Models')])    // where to look for models
-    ->ignore([ActivityLog::class]);       // models that never count as references
+    ->onDelete('confirm')
+    ->modelPaths([app_path('Models')])
+    ->ignore([ActivityLog::class])
+    ->guardDeleteActions(false); // keep discovery and the widget, do not touch delete actions
 ```
 
-## References widget
+Filament stores one `before()` hook per action. If a resource defines its own `before()` on a delete action, that hook replaces the guard's. In that case call `DeleteGuard::guard($action, collect([$record]))` from your hook, or check `WhereUsed::isReferenced($record)` yourself. The modal description and the disabled button do not depend on the hook.
 
-Add the widget to any View or Edit page. Resource pages pass the record automatically.
+The guards are attached with `DeleteAction::configureUsing()`, which applies process-wide. Panels that do not register the plugin use the `on_delete` value from the config file.
+
+## References widget
 
 ```php
 use Nsumbadze\WhereUsed\Widgets\ReferencesWidget;
@@ -67,13 +62,15 @@ class ViewCategory extends ViewRecord
 }
 ```
 
-Each referencing model gets a card with the total count and the first few records (configurable with `widget_limit`). Links open the View page when the user may view the record, else the Edit page, else no link.
+Resource pages pass the record to the widget automatically. Each referencing model is shown with its total and the first `widget_limit` records. A record links to its View page when the current user may view it, otherwise to its Edit page, otherwise it is shown as text.
 
 ## Custom references
 
-The scanner sees `BelongsTo` and `MorphTo` methods with a declared return type. For anything else (JSON columns, external keys), implement `HasReferences` on the target model:
+Discovery only sees relation methods with a `BelongsTo` or `MorphTo` return type. Other cases can be declared on the target model:
 
 ```php
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Nsumbadze\WhereUsed\Contracts\HasReferences;
 use Nsumbadze\WhereUsed\Reference;
 
@@ -92,35 +89,41 @@ class Category extends Model implements HasReferences
 }
 ```
 
-## Using the counts yourself
+## Using the counts directly
 
 ```php
 use Nsumbadze\WhereUsed\Facades\WhereUsed;
 
-WhereUsed::isReferenced($category);                 // bool, stops at the first hit
-WhereUsed::usagesOf($category);                     // Collection<ReferenceCount>, non-zero only
-WhereUsed::usagesAcross($categories);               // totals for many records, one query per reference
+WhereUsed::isReferenced($category);                 // bool
+WhereUsed::usagesOf($category);                     // references with a count above zero
+WhereUsed::countsFor($category);                    // every reference, including zero
+WhereUsed::usagesAcross($categories);               // totals for many records
 WhereUsed::summary(WhereUsed::usagesOf($category)); // "Used by 14 products and 3 promotions."
 ```
 
-Counts run through the referencing model's Filament resource query (`getEloquentQuery()`) when a resource exists, so tenancy and soft-delete scopes match what the panel shows: soft-deleted referencing rows do not count unless the resource query includes trashed records.
+Counts are executed through the referencing model's Filament resource query when a resource exists, so tenancy and soft-delete scopes match the panel. Soft-deleted referencing rows are not counted unless the resource query includes trashed records.
 
-Counts are memoised per record for the request (the delete modal asks three times: description, submit button, guard). Call `WhereUsed::flush()` after changing references in the same request.
+Results are memoised per record for the current request. `WhereUsed::flush()` clears the memo.
 
-## Caching the reference map
+## Cache
 
-Discovery reflects your models once and caches the result forever. Rebuild it on deploy:
+The reference map is stored in the default cache store without expiry. Rebuild it on deploy:
 
 ```bash
 php artisan where-used:cache
 php artisan where-used:clear
 ```
 
-## Notes
+## Configuration
 
-- Filament keeps a single `->before()` hook per action. If a resource sets its own `before()` on a delete action, it replaces the guard; call `Nsumbadze\WhereUsed\DeleteGuard::apply($action)` after your own configuration or use `WhereUsed::isReferenced()` inside your hook.
-- Untyped relation methods are skipped by default because discovery has to call them. Enable `discover_untyped` if all your relation methods are side-effect free.
-- Polymorphic references use the target's `getMorphClass()`, so morph maps are respected.
+| Key | Description |
+| --- | --- |
+| `model_paths` | Directories scanned for models |
+| `discover_untyped` | Also call relation methods without a return type. Off by default, because discovery has to invoke them. |
+| `ignore` | Models that never count as references |
+| `on_delete` | `block` or `confirm` |
+| `cache.store`, `cache.key` | Where the reference map is cached |
+| `widget_limit` | Records listed per model in the widget |
 
 ## Testing
 
@@ -130,6 +133,6 @@ composer analyse
 composer format
 ```
 
-## Licence
+## License
 
-MIT.
+MIT. See [LICENSE.md](LICENSE.md).
