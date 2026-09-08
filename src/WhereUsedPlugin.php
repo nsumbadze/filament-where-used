@@ -8,13 +8,26 @@ use Closure;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Contracts\Plugin;
+use Filament\Facades\Filament;
 use Filament\Panel;
+use Filament\Support\Components\ComponentManager;
+use Filament\Support\Components\Contracts\ScopedComponentManager;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
+use Throwable;
 
 class WhereUsedPlugin implements Plugin
 {
     use EvaluatesClosures;
+
+    public const ID = 'where-used';
+
+    /**
+     * configureUsing() registers on the process-wide ComponentManager, so the
+     * guard is attached once per manager no matter how many panels register
+     * the plugin (and again after the container is rebuilt, e.g. in tests).
+     */
+    protected static ?ScopedComponentManager $guardsConfiguredFor = null;
 
     protected DeleteBehaviour|string|Closure|null $onDelete = null;
 
@@ -34,14 +47,31 @@ class WhereUsedPlugin implements Plugin
     public static function get(): static
     {
         /** @var static $plugin */
-        $plugin = filament(app(static::class)->getId());
+        $plugin = filament(self::ID);
 
         return $plugin;
     }
 
+    /**
+     * Behaviour for the current panel, falling back to config when the panel
+     * did not register the plugin (the delete guard is process-wide).
+     */
+    public static function currentBehaviour(): DeleteBehaviour
+    {
+        try {
+            if (Filament::getCurrentOrDefaultPanel()?->hasPlugin(self::ID)) {
+                return static::get()->getDeleteBehaviour();
+            }
+        } catch (Throwable) {
+            // No panel in this context (console, queue): use the config default.
+        }
+
+        return DeleteBehaviour::from((string) config('filament-where-used.on_delete', 'block'));
+    }
+
     public function getId(): string
     {
-        return 'where-used';
+        return self::ID;
     }
 
     public function onDelete(DeleteBehaviour|string|Closure $behaviour): static
@@ -55,7 +85,7 @@ class WhereUsedPlugin implements Plugin
     {
         $behaviour = $this->evaluate($this->onDelete) ?? config('filament-where-used.on_delete', 'block');
 
-        return $behaviour instanceof DeleteBehaviour ? $behaviour : DeleteBehaviour::from($behaviour);
+        return $behaviour instanceof DeleteBehaviour ? $behaviour : DeleteBehaviour::from((string) $behaviour);
     }
 
     /**
@@ -112,9 +142,13 @@ class WhereUsedPlugin implements Plugin
         $map->usePaths($this->getModelPaths());
         $map->ignore($this->getIgnoredModels());
 
-        if (! $this->guardsDeleteActions) {
+        $manager = ComponentManager::resolve();
+
+        if (! $this->guardsDeleteActions || static::$guardsConfiguredFor === $manager) {
             return;
         }
+
+        static::$guardsConfiguredFor = $manager;
 
         DeleteAction::configureUsing(fn (DeleteAction $action) => DeleteGuard::apply($action));
         DeleteBulkAction::configureUsing(fn (DeleteBulkAction $action) => DeleteGuard::applyToBulk($action));

@@ -16,19 +16,21 @@ use Nsumbadze\WhereUsed\Enums\DeleteBehaviour;
 /**
  * Wires the reference check into Filament's delete actions.
  *
- * Applied globally through DeleteAction::configureUsing() by the plugin. If a
- * resource defines its own ->before() hook it replaces ours, so call
- * DeleteGuard::apply($action) again inside that hook chain, or use
- * WhereUsed::isReferenced() directly.
+ * Applied globally through DeleteAction::configureUsing() by the plugin, so it
+ * runs before any per-resource configuration. Filament keeps a single
+ * ->before() hook per action: a resource that sets its own replaces the
+ * server-side guard and should call DeleteGuard::guard() (or
+ * WhereUsed::isReferenced()) inside it. The disabled submit button and the
+ * modal description do not depend on that hook.
  */
 final class DeleteGuard
 {
     public static function apply(DeleteAction $action): void
     {
         $action
-            ->modalDescription(fn (Model $record): ?string => self::description($record))
+            ->modalDescription(fn (Model $record): ?string => self::describe(self::references()->usagesOf($record)))
             ->modalSubmitAction(function (Action $submitAction, Model $record): Action {
-                if (self::behaviour() === DeleteBehaviour::Block && self::references()->isReferenced($record)) {
+                if (self::isBlocking() && self::references()->isReferenced($record)) {
                     $submitAction->disabled();
                 }
 
@@ -42,7 +44,14 @@ final class DeleteGuard
     public static function applyToBulk(DeleteBulkAction $action): void
     {
         $action
-            ->modalDescription(fn (EloquentCollection $records): ?string => self::bulkDescription($records))
+            ->modalDescription(fn (EloquentCollection $records): ?string => self::describe(self::references()->usagesAcross($records)))
+            ->modalSubmitAction(function (Action $submitAction, EloquentCollection $records): Action {
+                if (self::isBlocking() && self::references()->usagesAcross($records)->isNotEmpty()) {
+                    $submitAction->disabled();
+                }
+
+                return $submitAction;
+            })
             ->before(function (DeleteBulkAction $action, EloquentCollection $records): void {
                 self::guard($action, $records);
             });
@@ -55,11 +64,11 @@ final class DeleteGuard
      */
     public static function guard(Action $action, Collection $records): void
     {
-        if (self::behaviour() !== DeleteBehaviour::Block) {
+        if (! self::isBlocking()) {
             return;
         }
 
-        $usages = self::usagesAcross($records);
+        $usages = self::references()->usagesAcross($records);
 
         if ($usages->isEmpty()) {
             return;
@@ -76,17 +85,7 @@ final class DeleteGuard
 
     public static function description(Model $record): ?string
     {
-        $usages = self::references()->usagesOf($record);
-
-        if ($usages->isEmpty()) {
-            return null;
-        }
-
-        $summary = self::references()->summary($usages);
-
-        return self::behaviour() === DeleteBehaviour::Block
-            ? __('filament-where-used::where-used.blocked', ['summary' => $summary])
-            : __('filament-where-used::where-used.confirm', ['summary' => $summary]);
+        return self::describe(self::references()->usagesOf($record));
     }
 
     /**
@@ -94,47 +93,28 @@ final class DeleteGuard
      */
     public static function bulkDescription(EloquentCollection $records): ?string
     {
-        $usages = self::usagesAcross($records);
+        return self::describe(self::references()->usagesAcross($records));
+    }
 
+    /**
+     * @param  Collection<int, ReferenceCount>  $usages
+     */
+    private static function describe(Collection $usages): ?string
+    {
         if ($usages->isEmpty()) {
             return null;
         }
 
         $summary = self::references()->summary($usages);
 
-        return self::behaviour() === DeleteBehaviour::Block
+        return self::isBlocking()
             ? __('filament-where-used::where-used.blocked', ['summary' => $summary])
             : __('filament-where-used::where-used.confirm', ['summary' => $summary]);
     }
 
-    /**
-     * Usage counts summed across many records, keyed by reference.
-     *
-     * @param  Collection<int, Model>  $records
-     * @return Collection<int, ReferenceCount>
-     */
-    public static function usagesAcross(Collection $records): Collection
+    private static function isBlocking(): bool
     {
-        /** @var array<string, ReferenceCount> $totals */
-        $totals = [];
-
-        foreach ($records as $record) {
-            foreach (self::references()->usagesOf($record) as $usage) {
-                $key = $usage->reference->key();
-
-                $totals[$key] = new ReferenceCount(
-                    $usage->reference,
-                    ($totals[$key]->count ?? 0) + $usage->count,
-                );
-            }
-        }
-
-        return collect(array_values($totals));
-    }
-
-    private static function behaviour(): DeleteBehaviour
-    {
-        return WhereUsedPlugin::get()->getDeleteBehaviour();
+        return WhereUsedPlugin::currentBehaviour() === DeleteBehaviour::Block;
     }
 
     private static function references(): References
