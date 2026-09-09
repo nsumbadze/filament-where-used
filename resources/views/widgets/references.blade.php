@@ -26,11 +26,7 @@
                         <ul class="mt-3 space-y-1">
                             @foreach ($group['records'] as $item)
                                 <li class="truncate text-sm">
-                                    @if ($item['url'])
-                                        <x-filament::link :href="$item['url']" size="sm">{{ $item['title'] }}</x-filament::link>
-                                    @else
-                                        <span class="text-gray-600 dark:text-gray-300">{{ $item['title'] }}</span>
-                                    @endif
+                                    <x-filament::link :href="$item['url']" size="sm">{{ $item['title'] }}</x-filament::link>
                                 </li>
                             @endforeach
 

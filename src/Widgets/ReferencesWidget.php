@@ -26,7 +26,11 @@ class ReferencesWidget extends Widget
     public ?Model $record = null;
 
     /**
-     * @return array<int, array{label: string, count: int, records: array<int, array{title: string, url: ?string}>}>
+     * Records the current user may not open are left out of the list (the
+     * count still includes them), so the widget never leaks titles the
+     * policies would hide elsewhere in the panel.
+     *
+     * @return array<int, array{label: string, count: int, records: array<int, array{title: string, url: string}>}>
      */
     public function getGroups(): array
     {
@@ -44,10 +48,11 @@ class ReferencesWidget extends Widget
                 'count' => $usage->count,
                 'records' => $references
                     ->records($usage->reference, $this->record, $limit)
-                    ->map(fn (Model $record): array => [
-                        'title' => RecordLink::title($record),
-                        'url' => RecordLink::for($record),
-                    ])
+                    ->map(fn (Model $record): ?array => ($url = RecordLink::for($record)) !== null
+                        ? ['title' => RecordLink::title($record), 'url' => $url]
+                        : null)
+                    ->filter()
+                    ->values()
                     ->all(),
             ])
             ->all();

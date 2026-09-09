@@ -62,7 +62,7 @@ class ViewCategory extends ViewRecord
 }
 ```
 
-Resource pages pass the record to the widget automatically. Each referencing model is shown with its total and the first `widget_limit` records. A record links to its View page when the current user may view it, otherwise to its Edit page, otherwise it is shown as text.
+Resource pages pass the record to the widget automatically. Each referencing model is shown with its total and up to `widget_limit` records. A record links to its View page when the current user may view it, otherwise to its Edit page. Records the user may open neither way are counted but not listed.
 
 ## Custom references
 

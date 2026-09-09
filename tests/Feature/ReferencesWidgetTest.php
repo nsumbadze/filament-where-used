@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Gate;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Category;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Models\Product;
+use Nsumbadze\WhereUsed\Tests\Fixtures\Policies\DenyAllProductPolicy;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\CategoryResource\Pages\ViewCategory;
 use Nsumbadze\WhereUsed\Tests\Fixtures\Resources\ProductResource;
 use Nsumbadze\WhereUsed\Widgets\ReferencesWidget;
@@ -50,4 +52,16 @@ it('renders as a footer widget on the view page', function (): void {
     livewire(ViewCategory::class, ['record' => $category->getRouteKey()])
         ->assertSuccessful()
         ->assertSeeLivewire(ReferencesWidget::class);
+});
+
+it('does not list records the user may not open', function (): void {
+    Gate::policy(Product::class, DenyAllProductPolicy::class);
+
+    $category = Category::query()->create(['name' => 'Used']);
+    Product::query()->create(['name' => 'Secret hat', 'category_id' => $category->id]);
+
+    livewire(ReferencesWidget::class, ['record' => $category])
+        ->assertSee('product')
+        ->assertSee('and 1 more')
+        ->assertDontSee('Secret hat');
 });
