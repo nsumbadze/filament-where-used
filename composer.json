@@ -8,6 +8,7 @@
         "delete",
         "relations"
     ],
+    "homepage": "https://github.com/nsumbadze/filament-where-used",
     "license": "MIT",
     "type": "library",
     "authors": [
@@ -15,6 +16,10 @@
             "name": "Nika Sumbadze"
         }
     ],
+    "support": {
+        "issues": "https://github.com/nsumbadze/filament-where-used/issues",
+        "source": "https://github.com/nsumbadze/filament-where-used"
+    },
     "require": {
         "php": "^8.2",
         "filament/filament": "^4.0 || ^5.0",
